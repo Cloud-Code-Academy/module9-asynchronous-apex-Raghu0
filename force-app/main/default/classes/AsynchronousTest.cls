@@ -34,16 +34,21 @@ public with sharing class AsynchronousTest {
             testAccounts.add(new Account(Name = 'Test Account ' + i));
         }
         insert testAccounts;
-
+        
         List<Opportunity> testOpps = new List<Opportunity>();
         for (Account acc : testAccounts) {
             testOpps.add(new Opportunity(Name = 'Test Opp for ' + acc.Name, AccountId = acc.Id, CloseDate = Date.today(), StageName = 'Prospecting'));
         }
         insert testOpps;
 
+        //As we can only pass Primitive Data Types to the Future methods, collecting the recordIds of all the Accounts created.
+        List<Id> acctIds = new List<Id>();
+        for(Account acc : testAccounts){
+            acctIds.add(acc.Id);
+        }
         // Call the method to test between the startTest and stopTest methods
         Test.startTest();
-        //YOUR CODE HERE
+        NextStepFuture.updateNextStepFuture(acctIds);
         Test.stopTest();
 
         // Query the updated accounts and opportunities
@@ -91,10 +96,15 @@ public with sharing class AsynchronousTest {
             testOpps.add(new Opportunity(Name = 'Test Opp for ' + acc.Name, AccountId = acc.Id, CloseDate = Date.today(), StageName = 'Prospecting', NextStep = 'Meeting in the future'));
         }
         insert testOpps;
+        Map<Id, Account> accountMap = new Map<Id, Account>();
+        for (Account acc : testAccounts) {
+            accountMap.put(acc.Id, acc);
+        }
+        NextStepQueueable queueJob = new NextStepQueueable(accountMap);
 
         // Call the method to test
         Test.startTest();
-        NextStepQueueable.enqueueJob();
+        System.enqueueJob(queueJob);
         Test.stopTest();
 
         // Query the updated accounts and opportunities
@@ -148,7 +158,7 @@ public with sharing class AsynchronousTest {
         }
     }
 
-    /*  //UNCOMMENT TEST METHODS BELOW ONCE THE NextStepSchedule class is implemented
+    ///UNCOMMENT TEST METHODS BELOW ONCE THE NextStepSchedule class is implemented
         //No Changes should be required to the test methods/code below other than uncommenting them
         //Manually setup the scheduled job in Salesforce to run the NextStepSchedule class
     @IsTest
@@ -189,5 +199,5 @@ public with sharing class AsynchronousTest {
             System.assertEquals('Batching the next meetings together.', opp.NextStep, 'Opportunity NextStep field was not updated correctly.');
         }
     }
-    */
+    
 }
